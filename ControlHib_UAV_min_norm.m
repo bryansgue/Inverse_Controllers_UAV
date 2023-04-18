@@ -1,4 +1,4 @@
-function [VMref,he] = Solo_UAV(xd_p,yd_p,zd_p,psid_p,hd,h)
+function [VMref,he] = ControlHib_UAV_min_norm(h,hd,hd_p,flag)
 
 psi = h(4);
 
@@ -31,30 +31,34 @@ J = [[J11 J12 J13 J14];[J21 J22 J23 J24];[J31 J32 J33 J34];[J41 J42 J43 J44]];
 % yd = hd(2);
 % zd = hd(3);
 % psid = hd(4);
-% 
+%
 % hx = h(1);
 % hy = h(2);
 % hz = h(3);
 % psi = h(4);
-% 
+%
 %   hxe= xd - hx;
 %   hye= yd - hy;
 %   hze= zd - hz;
-%   psie= Angulo(psid-psi);   
+%   psie= Angulo(psid-psi);
 %   he= [hxe ;hye ;hze ;psie];
-  
- he = hd - h;
- he(4) = Angulo(he(4));
-  
-  %he = hd-h;
-  %he(4) = Angulo(h(4));
+
+he = hd - h;
+he(4) = Angulo(he(4));
+
+%he = hd-h;
+%he(4) = Angulo(h(4));
 % Constantes de ganancia ( ROS DJI_SDK)
-K1 = diag(1*[1 1 1 1]); 
-K2 = diag(1*[1 1 1 1]);   
+K1 = diag(1*[1 1 1 1]);
+K2 = diag(1*[1 1 1 1]);
 D = diag([1 1 1 1 1 1 1]);
 
-% 7) Ley de control completa,  solucion = [u omega qpunto1 qpunto2]    
- VMref = pinv(J)*([xd_p yd_p zd_p psid_p]'+K1*tanh(K2*he));
-%    VMref = pinv(J)*(K1*tanh(K2*he'));
-  
+ 
+
+
+
+% 7) Ley de control completa,  solucion = [u omega qpunto1 qpunto2]
+
+    VMref = pinv(J)*(hd_p + K1*tanh(K2*he));
+
 end

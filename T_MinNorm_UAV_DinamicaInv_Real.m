@@ -17,7 +17,7 @@ chi_real(:,1) = chi';
 %% Configuracion ROS - ARM Sub
 active = true;
 Master = 'http://192.168.88.251:11311';
-Local = '192.168.88.247';
+Local = '192.168.88.243';
 
 Uav_Topic_Sub ='/dji_sdk/odometry';
 Uav_Topic_Pub ='/m100/velocityControl';

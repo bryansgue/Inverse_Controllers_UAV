@@ -4,7 +4,7 @@
 %******************************************************************************************************************
 clc; clear all; close all; warning off % Inicializacion
 ts = 1/30;       % Tiempo de muestreo
-tfin = 30;      % Tiempo de simulación
+tfin = 180;      % Tiempo de simulación
 t = 0:ts:tfin;
 %% Inicializa Nodo ROS
 rosshutdown
@@ -15,7 +15,7 @@ rosinit
 %% 1) PUBLISHER TOPICS & MSG ROS - UAV M100
 
 [velControl_topic,velControl_msg] = rospublisher('/m100/velocityControl','geometry_msgs/Twist');
-u_ref = [0.0, 0.0,0, 0.0];
+u_ref = [-0.0, 0.0, 0.0, -0.0];
 send_velocities(velControl_topic, velControl_msg, u_ref);
 
 
@@ -23,32 +23,16 @@ send_velocities(velControl_topic, velControl_msg, u_ref);
 %% 2) Suscriber TOPICS & MSG ROS - UAV M100
 
 odomSub = rossubscriber('/dji_sdk/odometry');
+RCSub = rossubscriber('/dji_sdk/rc');
 
-[x,euler,x_p,omega] = odometryUAV(odomSub);
 
+[x(:,1),euler(:,1),x_p(:,1),omega(:,1)] = odometryUAV(odomSub);
+rc = odometryRC(RCSub);
 
 h(:,1) = [x(:,1);euler(3,1)];
 h_p(:,1) = [x_p(:,1);omega(3,1)]
 
-%% Variables definidas por la TRAYECTORIA y VELOCIDADES deseadas
-[xd, yd, zd, psid, xdp, ydp, zdp, psidp] = Trayectorias(3,t);
-hd = [xd;yd;zd;psid];
-hd_p = [xdp;ydp;zdp;psidp];
 
-%% Variables definidas por la TRAYECTORIA y VELOCIDADES deseadas
-
-xd= 1.5*sin(0.25*t);
-yd= 0*ones(1,length(t));
-zd= 2*ones(1,length(t));
-psid=  0.0*ones(1,length(t));
-
-xdp= 0*ones(1,length(t));
-ydp= 0*ones(1,length(t));
-zdp= 0.0*ones(1,length(t));
-psidp=  0*ones(1,length(t));
-
-hd = [xd;yd;zd;psid];
-hd_p = [xdp;ydp;zdp;psidp];
                                                       
 disp('Empieza el programa')
 
@@ -58,34 +42,48 @@ disp('Empieza el programa')
 
 for k=1:length(t)
     tic
-%% 1) Controlador
-    [vc(:,k),he(:,k)] = ControlHib_UAV_min_norm(h(:,k),hd(:,k),hd_p(:,k),2565);
     
-%% 2) Envia velocidades al UAV    
-   
+    rc = odometryRC(RCSub);
+    
+    flag = rc(6);
+    if(flag == -4545)
+        hd(:,k) = [1*rc(1);1*rc(2);2+rc(4);rc(3)];
+        hd_p(:,k) = [0;0;0;0];
+    else
+        hd(:,k) = [0;0;0;0];
+        hd_p(:,k) = [rc(1);rc(2);rc(4);rc(3)];
+    end
+    
+    % 1) Controlador
+    
+    [vc(:,k),he(:,k)] = Control_UAV_min_norm(h(:,k),hd(:,k),hd_p(:,k),flag);
+
+    
+    %% 2) Envia velocidades al UAV
+    
     send_velocities(velControl_topic, velControl_msg, vc(:,k));
-%% 3) Recibir datos - UAV          
-try
-[x(:,k+1),euler(:,k+1),x_p(:,k+1),omega(:,k+1)] = odometryUAV(odomSub);
-
-h(:,k+1) = [x(:,k+1);euler(3,k+1)];
-h_p(:,k+1) = [x_p(:,k+1);omega(3,k+1)]  ;  
-
-catch
-h(:,k+1) = h(:,k);
-h_p(:,k+1) = h_p(:,k);    
-end
-
-R = Rot_zyx(euler(:,k+1));
-
-v(:,k+1) = inv(R)*x_p(:,k+1);
+    %% 3) Recibir datos - UAV
+    try
+        [x(:,k+1),euler(:,k+1),x_p(:,k+1),omega(:,k+1)] = odometryUAV(odomSub);
+        
+        h(:,k+1) = [x(:,k+1);euler(3,k+1)];
+        h_p(:,k+1) = [x_p(:,k+1);omega(3,k+1)]  ;
+        
+    catch
+        h(:,k+1) = h(:,k);
+        h_p(:,k+1) = h_p(:,k);
+    end
     
-%% 4) Tiempo de muestreo
-while toc < ts
-end
+    R = Rotacion_z(h(:,k));
+    R = Rot_zyx(euler(:,))
+    v(:,k+1) = pinv(R)*x_p(:,k);
     
-%% 5) Tiempo de Loop   
-     dt(k) = toc;     
+    %% 4) Tiempo de muestreo
+    while toc < ts
+    end
+    
+    %% 5) Tiempo de Loop
+    dt(k) = toc;
 end
 disp('Fin de los cálculos')
 u_ref = [0.0, 0.0, 0, 0.0];

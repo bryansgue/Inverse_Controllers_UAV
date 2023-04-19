@@ -80,6 +80,7 @@ R = Rot_zyx(euler(:,k+1));
 
 v(:,k+1) = inv(R)*x_p(:,k+1);
     
+v(:,k+1) = pinv(R)*x_p(:,k);
 %% 4) Tiempo de muestreo
 while toc < ts
 end

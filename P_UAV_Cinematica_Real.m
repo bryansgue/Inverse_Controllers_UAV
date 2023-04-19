@@ -4,7 +4,7 @@
 %******************************************************************************************************************
 clc; clear all; close all; warning off % Inicializacion
 ts = 1/30;       % Tiempo de muestreo
-tfin = 180;      % Tiempo de simulación
+tfin = 60;      % Tiempo de simulación
 t = 0:ts:tfin;
 %% Inicializa Nodo ROS
 rosshutdown
@@ -74,8 +74,8 @@ for k=1:length(t)
         h_p(:,k+1) = h_p(:,k);
     end
     
-    R = Rotacion_z(h(:,k));
-    
+    %R = Rotacion_z(h(:,k));
+    R = Rot_zyx(euler(:,k));
     v(:,k+1) = pinv(R)*x_p(:,k);
     
     %% 4) Tiempo de muestreo

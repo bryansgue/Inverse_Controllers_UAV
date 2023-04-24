@@ -15,7 +15,7 @@ rosinit
 %% 1) PUBLISHER TOPICS & MSG ROS - UAV M100
 
 [velControl_topic,velControl_msg] = rospublisher('/m100/velocityControl','geometry_msgs/Twist');
-u_ref = [-0.0, 0.0, 0.0, -0.0];
+u_ref = [0.00, 0.00, 0.0, 0.00];
 send_velocities(velControl_topic, velControl_msg, u_ref);
 
 
